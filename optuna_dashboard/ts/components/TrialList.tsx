@@ -2,6 +2,7 @@ import CheckBoxIcon from "@mui/icons-material/CheckBox"
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank"
 import FilterListIcon from "@mui/icons-material/FilterList"
 import StopCircleIcon from "@mui/icons-material/StopCircle"
+import { HourglassTop } from "@mui/icons-material"
 import {
   Box,
   Button,
@@ -9,6 +10,7 @@ import {
   Menu,
   MenuItem,
   Typography,
+  SvgIcon,
   useTheme,
 } from "@mui/material"
 import Chip from "@mui/material/Chip"
@@ -28,6 +30,7 @@ import { useRecoilValue } from "recoil"
 import { FormWidgets, StudyDetail, Trial } from "ts/types/optuna"
 import { actionCreator } from "../action"
 import { useConstants } from "../constantsProvider"
+import { useQueriedTrials } from "../hooks/useQueriedTrials"
 import { artifactIsAvailable } from "../state"
 import { useQuery } from "../urlQuery"
 import { TrialArtifactCards } from "./Artifact/TrialArtifactCards"
@@ -96,20 +99,6 @@ const useTrials = (
     })
     return result
   }, [studyDetail, excludedStates])
-}
-
-const useQueriedTrials = (trials: Trial[], query: URLSearchParams): Trial[] => {
-  return useMemo(() => {
-    const queried = query.get("numbers")
-    if (queried === null) {
-      return []
-    }
-    const numbers = queried
-      .split(",")
-      .map((s) => parseInt(s))
-      .filter((n) => !isNaN(n))
-    return trials.filter((t) => numbers.findIndex((n) => n === t.number) !== -1)
-  }, [trials, query])
 }
 
 const useIsBestTrial = (
@@ -343,7 +332,7 @@ export const TrialList: FC<{ studyDetail: StudyDetail | null }> = ({
   const excludedStates = useExcludedStates(query)
   const trials = useTrials(studyDetail, excludedStates)
   const isBestTrial = useIsBestTrial(studyDetail)
-  const queried = useQueriedTrials(trials, query)
+  const { trials: queried, isLoading: loadingTrial } = useQueriedTrials(studyDetail?.id, trials, query)
   const [filterMenuAnchorEl, setFilterMenuAnchorEl] =
     React.useState<null | HTMLElement>(null)
   const openFilterMenu = Boolean(filterMenuAnchorEl)
@@ -363,9 +352,7 @@ export const TrialList: FC<{ studyDetail: StudyDetail | null }> = ({
   })
 
   const trialListWidth = 200
-
-  const selected =
-    queried.length > 0 ? queried : trials.length > 0 ? [trials[0]] : []
+  const selected = queried?.length ? queried : []
 
   return (
     <Box
@@ -549,6 +536,14 @@ export const TrialList: FC<{ studyDetail: StudyDetail | null }> = ({
           height: `calc(100vh - ${theme.spacing(8)})`,
         }}
       >
+        {loadingTrial ? (
+              <Box component="div" sx={{ margin: theme.spacing(2) }}>
+              <SvgIcon fontSize="small" color="action">
+                <HourglassTop />
+              </SvgIcon>
+              Loading trial...
+            </Box>
+        ): (
         <Box
           component="div"
           sx={{ display: "flex", flexDirection: "row", width: "100%" }}
@@ -565,7 +560,7 @@ export const TrialList: FC<{ studyDetail: StudyDetail | null }> = ({
                   formWidgets={studyDetail?.form_widgets}
                 />
               ))}
-        </Box>
+        </Box>)}
       </Box>
     </Box>
   )

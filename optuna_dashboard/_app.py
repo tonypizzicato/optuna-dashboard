@@ -40,10 +40,12 @@ from ._preferential_history import restore_history
 from ._rdb_migration import register_rdb_migration_route
 from ._serializer import serialize_frozen_study
 from ._serializer import serialize_study_detail
+from ._serializer import serialize_frozen_trial
 from ._storage import create_new_study
 from ._storage import get_studies
 from ._storage import get_study
 from ._storage import get_trials
+from ._storage import get_trial
 from ._storage_url import get_storage
 from .artifact._backend import delete_all_artifacts
 from .artifact._backend import register_artifact_route
@@ -214,7 +216,7 @@ def create_app(
         if study is None:
             response.status = 404  # Not found
             return {"reason": f"study_id={study_id} is not found"}
-        trials = get_trials(storage, study_id)
+        trials = get_trials(storage, study_id, lean=True)
 
         system_attrs = getattr(study, "system_attrs", {})
         is_preferential = system_attrs.get(_SYSTEM_ATTR_PREFERENTIAL_STUDY, False)
@@ -228,6 +230,7 @@ def create_app(
                 best_trials = [storage.get_best_trial(study_id)]
         else:
             best_trials = get_pareto_front_trials(trials=trials, directions=study.directions)
+            best_trials = [get_trial(storage, t._trial_id) for t in best_trials]
         (
             # TODO: intersection_search_space and union_search_space look more clear since now we
             # have union_user_attrs.
@@ -421,6 +424,13 @@ def create_app(
 
         response.status = 204
         return {}
+
+    @app.get("/api/studies/<study_id:int>/trials/<trial_id:int>")
+    @json_api_view
+    def get_trial_detail(study_id: int, trial_id: int) -> dict[str, Any]:
+        trial = get_trial(storage, trial_id)
+
+        return serialize_frozen_trial(study_id, trial, {})
 
     @app.post("/api/trials/<trial_id:int>/tell")
     @json_api_view

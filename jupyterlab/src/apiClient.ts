@@ -12,6 +12,7 @@ import {
   StudyDetailResponse,
   StudySummariesResponse,
   StudySummary,
+  TrialResponse,
   Trial,
   UploadArtifactAPIResponse,
 } from "@optuna/optuna-dashboard"
@@ -67,6 +68,11 @@ export class JupyterlabAPIClient extends APIClient {
         artifacts: res.artifacts,
         skipped_trial_numbers: res.skipped_trial_numbers ?? [],
       }
+    })
+
+  getTrialDetail = (studyId: number, trialId: number): Promise<Trial> =>
+    requestAPI<TrialResponse>(`/api/studies/${studyId}/trials/${trialId}`).then((res) => {
+      return this.convertTrialResponse(res)
     })
   getStudySummaries = (): Promise<StudySummary[]> =>
     requestAPI<StudySummariesResponse>("/api/studies").then((res) => {

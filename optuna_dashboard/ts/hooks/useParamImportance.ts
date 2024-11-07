@@ -8,7 +8,8 @@ import { useAPIClient } from "../apiClientProvider"
 export const useParamImportance = ({
   numCompletedTrials,
   studyId,
-}: { numCompletedTrials: number; studyId: number }) => {
+  showPlot,
+}: { numCompletedTrials: number; studyId: number, showPlot: boolean }) => {
   const { apiClient } = useAPIClient()
   const { enqueueSnackbar } = useSnackbar()
 
@@ -16,8 +17,17 @@ export const useParamImportance = ({
     Optuna.ParamImportance[][],
     AxiosError<{ reason: string }>
   >({
-    queryKey: ["paramImportance", studyId, numCompletedTrials],
-    queryFn: () => apiClient.getParamImportances(studyId),
+    queryKey: ["paramImportance", studyId, numCompletedTrials, showPlot],
+    queryFn: () => {
+      // do not query for params importance in case we've loaded trials and we have completed trials
+      // without this check, we would query for params importance before actual trials are loaded 
+      // and right after it's loaded, which leads to two heavy requests
+      if (!showPlot || numCompletedTrials === 0) {
+        return Promise.resolve([]);
+      }
+
+      return apiClient.getParamImportances(studyId);
+    },
     staleTime: Infinity,
     gcTime: 30 * 60 * 1000, // 30 minutes
   })

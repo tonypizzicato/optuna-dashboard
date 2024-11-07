@@ -11,6 +11,7 @@ import {
   RenameStudyResponse,
   StudyDetailResponse,
   StudySummariesResponse,
+  TrialResponse,
   UploadArtifactAPIResponse,
 } from "./apiClient"
 import {
@@ -92,6 +93,12 @@ export class AxiosClient extends APIClient {
           }
         })
       })
+  getTrialDetail = (studyId: number, trialId: number): Promise<Trial> =>
+    this.axiosInstance
+      .get<TrialResponse>(`/api/studies/${studyId}/trials/${trialId}?studyId=${studyId}`, {})
+      .then(res => {
+        return this.convertTrialResponse(res.data);
+      });
   createNewStudy = (
     studyName: string,
     directions: Optuna.StudyDirection[]

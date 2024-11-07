@@ -1,6 +1,8 @@
-import { Box, Card, CardContent, useTheme } from "@mui/material"
+import { Box, Card, CardContent, SvgIcon, useTheme } from "@mui/material"
+import { HourglassTop } from "@mui/icons-material"
+
 import * as plotly from "plotly.js-dist-min"
-import React, { FC, useEffect } from "react"
+import React, { FC, useEffect, useState } from "react"
 
 import { PlotImportance } from "@optuna/react"
 import { StudyDetail } from "ts/types/optuna"
@@ -16,17 +18,39 @@ export const GraphHyperparameterImportance: FC<{
   study: StudyDetail | null
   graphHeight: string
 }> = ({ studyId, study = null, graphHeight }) => {
+  // show plot right away with a small number of trials
+  const [showPlot, setShowPlot] = useState(study?.trials.length <= 1000)
+
   const numCompletedTrials =
     study?.trials.filter((t) => t.state === "Complete").length || 0
-  const { importances } = useParamImportance({
+  const { importances, isLoading, error } = useParamImportance({
     numCompletedTrials,
     studyId,
+    showPlot,
   })
 
   const theme = useTheme()
   const colorTheme = usePlotlyColorTheme(theme.palette.mode)
+  const isBackend = useBackendRender();
 
-  if (useBackendRender()) {
+  if (isLoading) {
+    return (
+      <Box component="div" sx={{ margin: theme.spacing(2) }}>
+        <SvgIcon fontSize="small" color="action">
+          <HourglassTop />
+        </SvgIcon>
+        Loading importances...
+      </Box>
+    );
+  }
+
+  if (!showPlot || error) {
+    return (
+      <button onClick={() => setShowPlot(!showPlot)}>Show plot</button>
+    )
+  }
+
+  if (isBackend) {
     return (
       <GraphHyperparameterImportanceBackend
         studyId={studyId}

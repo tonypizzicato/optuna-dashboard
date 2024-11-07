@@ -181,6 +181,10 @@ export abstract class APIClient {
     nLocalTrials: number
   ): Promise<StudyDetail>
   abstract getStudySummaries(): Promise<StudySummary[]>
+  abstract getTrialDetail(
+    studyId: number,
+    trialId: number
+  ): Promise<Trial>;
   abstract createNewStudy(
     studyName: string,
     directions: Optuna.StudyDirection[]
